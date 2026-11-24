@@ -2,54 +2,80 @@
 
 <p>
   <img src="https://img.shields.io/badge/source-private-ff2e3b?style=for-the-badge&labelColor=0a0a0f&logo=github"/>
-  <img src="https://img.shields.io/badge/Next.js-0a0a0f?style=for-the-badge&logo=nextdotjs&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Next.js%2016-0a0a0f?style=for-the-badge&logo=nextdotjs&logoColor=white"/>
   <img src="https://img.shields.io/badge/TypeScript-0a0a0f?style=for-the-badge&logo=typescript&logoColor=3178C6"/>
   <img src="https://img.shields.io/badge/Prisma-0a0a0f?style=for-the-badge&logo=prisma&logoColor=white"/>
   <img src="https://img.shields.io/badge/SQLite-0a0a0f?style=for-the-badge&logo=sqlite&logoColor=4DB6E8"/>
+  <img src="https://img.shields.io/badge/ANAF-e--Factura-3ddc84?style=for-the-badge&labelColor=0a0a0f"/>
+  <img src="https://img.shields.io/badge/E2E%20tests-51%20passing-3ddc84?style=for-the-badge&labelColor=0a0a0f&logo=puppeteer&logoColor=white"/>
 </p>
 
-> This is a showcase repository. The source code is kept in a private repository.
+> This is a showcase repository. The source code is kept in a private repository. All screenshots and the video use a demo database with **fictional data**.
 
-A full-stack accounting and tax app for Romanian sole traders (PFA / II) on the real-income system, with or without VAT.
-It is more than a CRUD app: it applies real Romanian tax rules (income tax, CAS, CASS, VAT) and talks to the **official
-ANAF APIs**, including RO e-Factura over OAuth2 with a qualified digital certificate.
+An invoicing and tax app for a Romanian **self-employed individual (PFI/PFA)** on the real-income system, not registered for VAT. I built it for my own activity as a football referee, and it **replaced a commercial invoicing app (Oblio)** in daily use: all existing invoices, receipts, expenses and clients were migrated automatically. It runs **only on my own computer** (local HTTPS, password, daily backup to OneDrive) and sends invoices straight to the tax authority through **RO e-Factura (ANAF)**.
 
 <p align="center">
-  <img src="./assets/preview.webp" width="100%" alt="Contabilitate PFA in use"/>
+  <img src="./assets/preview.webp" width="100%" alt="Contabilitate PFA in use: dashboard, quick search, invoices, new invoice, taxes"/>
 </p>
+<p align="center"><a href="./assets/demo.mp4">▶ Full walkthrough video (1:49)</a></p>
 
 ## Features
 
-- **Invoicing:** gap-free sequential numbering, multiple lines, optional VAT per line, PDF export, partial or full payments, cancelling without deleting (so the legal sequence stays intact).
-- **Pro-forma invoices** with their own numbering, convertible into real invoices.
-- **Recurring invoices:** monthly, quarterly or yearly templates.
-- **Expenses:** categories, deductibility (full / 50% / none), receipt upload (photo, scan, PDF).
-- **RO e-Factura (ANAF):** OAuth2 sign-in with a qualified certificate, XML upload, status tracking, signed response download, automatic sync of invoices received from suppliers, resending after a rejection, automatic token refresh.
-- **Clients:** automatic company lookup and VAT status check by CUI at ANAF.
-- **Bank:** CSV statement import with automatic or manual reconciliation against invoices and expenses.
-- **Dashboard:** collected income, deductible expenses, net income, progress toward the VAT threshold, quarterly tax + CAS + CASS estimate, overdue invoices, CAS threshold alerts.
-- **Reports:** invoice and expense journal, interactive tax estimator, monthly VAT journal, cash register, income vs. expenses charts.
-- **Audit trail** of every critical action, and **database backups** with rotation.
+**Invoicing**
+- Gap-free numbering per series (`AP0019`), multiple lines with details (match, competition), **suggestions from previous invoices** (service, price, unit).
+- **Editable until it reaches the tax portal**; after that only a **credit note (storno)** linked to the original invoice, with `BillingReference` in the XML. Cancelling keeps the number and always asks for confirmation.
+- Payments, and an **automatic receipt** for cash payments (its own series), included in the invoice PDF. Receipts list, pro-forma and recurring invoices.
 
-<p align="center">
-  <img src="./assets/screenshot.webp" width="100%" alt="Dashboard"/>
-</p>
-<p align="center"><sub>Dashboard, with demo data.</sub></p>
+**RO e-Factura (ANAF)**
+- UBL 2.1 / **CIUS-RO XML written from scratch**, **checked against ANAF's public validator before every upload**, so a broken invoice never gets rejected in the tax portal.
+- OAuth2 with a qualified digital certificate (client authenticated with Basic auth, as the official procedure requires), automatic token refresh, or a pasted token checked live against the API.
+- Upload, status polling, signed response download, sync of invoices received from suppliers.
+
+**Taxes, computed for the user's real situation**
+- Per-year tax profile: age is read from the national ID number, and a "student" flag applies the rule that a **student under 26 pays health insurance (CASS) on actual income**, not on the 6-minimum-wage floor.
+- Step-by-step calculation: income − deductible expenses (mixed-use fuel at 50%) = net income → CASS → pension (CAS, only above 12 minimum wages) → 10% income tax after deducting contributions.
+- Figures for the yearly tax return with a copy button, deadline countdown, alerts (pension threshold, VAT threshold, missed deadline, tax loss) and "set aside X% of every payment".
+- The legally required **cash & bank ledger** (form 14-1-1/b) with monthly and yearly totals, as a **print-ready PDF** and an **Excel** file.
+
+**Staying organised**
+- **Period filter on every list** (this/last month, quarter or year, any year, month or quarter, custom range), lists grouped by month with subtotals.
+- Search and status / client / category / payment-method filters, and an **Excel export of exactly what is on screen**.
+- **Ctrl+K command palette**: jump to any page, invoice number or client.
+- Sidebar **counters**: invoices still to send to ANAF, overdue invoices, days until the tax return, plus backup status. Collapsible to icons.
+
+**Data safety**
+- Listens only on `127.0.0.1`, **local HTTPS** (mkcert), scrypt password, HMAC-signed session, lockout after failed attempts, OAuth secrets never reach the browser.
+- **Consistent SQLite backups** (`VACUUM INTO`) at start-up and daily: local copies plus OneDrive, with rotation. Error log on disk, automatic server restart, a Windows launcher that only rebuilds when the code changes.
+
+<table>
+<tr>
+<td width="50%"><img src="./assets/facturi.webp" alt="Invoices table with period filter"/><p align="center"><sub>Invoices: period filter, month groups, ANAF status</sub></p></td>
+<td width="50%"><img src="./assets/factura.webp" alt="Invoice document view"/><p align="center"><sub>Invoice as a document, with ANAF and payments panels</sub></p></td>
+</tr>
+<tr>
+<td width="50%"><img src="./assets/taxe.webp" alt="Tax calculation for a student"/><p align="center"><sub>Taxes calculated for a student under 26</sub></p></td>
+<td width="50%"><img src="./assets/registru.webp" alt="Cash and bank ledger"/><p align="center"><sub>Cash &amp; bank ledger, PDF and Excel</sub></p></td>
+</tr>
+<tr>
+<td width="50%"><img src="./assets/screenshot.webp" alt="Dashboard"/><p align="center"><sub>Dashboard: income, deductible expenses, what is left after taxes</sub></p></td>
+<td width="50%" align="center"><img src="./assets/telefon.webp" height="430" alt="Phone layout"/><p align="center"><sub>Every page fits a 390 px phone screen</sub></p></td>
+</tr>
+</table>
 
 ## Under the hood
 
-- **Next.js App Router** with Server Components for reads and one Server Actions module per domain (clients, invoices, expenses, e-Factura, bank import…).
-- **Money is stored as integers** (bani, 1/100 leu), never floats, to avoid rounding errors in tax math.
-- **Invoice numbers are assigned in an atomic transaction**, so there are no gaps and no race conditions.
-- **Tax constants are versioned per year in the database** (thresholds, rates), not hard-coded, so a new fiscal year needs no code change.
-- **UBL 2.1 / CIUS-RO XML is generated by hand**, following EN16931 with the Romanian profile, with no XML library.
-- **Defensive CSV parsing** for bank statements: the delimiter and columns (RO/EN) are detected automatically, and the import refuses to guess when it cannot find the critical columns.
-- **Charts drawn from scratch in SVG**, with no charting library: multi-series trend lines with a crosshair and tooltip, and category bars with an accessible palette that works in light and dark mode.
-- Clear invoice state flow: `DRAFT → ISSUED → SENT TO e-FACTURA → ACCEPTED / REJECTED → PAID`.
+- **Next.js App Router**: Server Components for reads, one Server Actions module per domain, route handlers for PDF / XML / CSV, an auth proxy, and `deploymentId` so a browser tab left on an old build reloads instead of failing.
+- **Money is stored as integers** (bani, 1/100 leu). **Invoice and receipt numbers are allocated in atomic transactions.**
+- **One source of truth** for shared rules: list filters are reused by the pages and by the Excel exports; "still to be paid" (not paid, not reversed) is defined once.
+- **Pure tax module** (no database access) used on both server and client, with yearly constants (CASS cap of 60 vs 72 minimum wages in 2025/2026).
+- The ledger is computed once and rendered as a page table, a landscape PDF with a repeated header, and a CSV.
+- **Credit notes are a relation** between invoices: the original drops out of "to be paid", and the credit note's XML references it.
+- **Responsive design system**: data tables on desktop, compact lists on phones, segmented controls, status badges, confirmation for irreversible actions.
+- **Tested end to end** with Puppeteer on a demo database: 51 steps, including real validation of the generated XML against ANAF's public validator, plus a phone-width check of all 17 pages. The demo video and these screenshots are generated by script.
 
 ## Tech stack
 
-Next.js 16 · React 19 · TypeScript (strict) · Prisma · SQLite · Zod · React Hook Form · Tailwind CSS v4 · @react-pdf/renderer · date-fns · ANAF e-Factura API (OAuth2)
+Next.js 16 · React 19 · TypeScript (strict) · Prisma · SQLite · Zod · Tailwind CSS v4 · @react-pdf/renderer · Inter · Puppeteer · ffmpeg · ANAF RO e-Factura API (OAuth2, UBL 2.1 / CIUS-RO)
 
 ## Source code
 
